@@ -1,29 +1,50 @@
-from pydantic import BaseModel
+from typing import Optional
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 
 
 class SpaceStation(BaseModel):
-    station_id: str
-    name: str
-    crew_size: int
-    power_level: float
-    oxygen_level: float
-    last_maintenance: datetime
-    is_operational: bool = True
-    notes: str
+    station_id: str = Field(..., min_length=3, max_length=10)
+    name: str = Field(..., min_length=1, max_length=50)
+    crew_size: int = Field(..., ge=1, le=20)
+    power_level: float = Field(..., ge=0.0, lt=100.0)
+    oxygen_level: float = Field(..., ge=0.0, lt=100.0)
+    last_maintenance: datetime = Field(...)
+    is_operational: bool = Field(default=True)
+    notes: Optional[str] = Field(max_length=200)
+
+    @model_validator(mode='after')
+    def validate_information(self) -> 'SpaceStation':
+        if self.last_maintenance > datetime.now():
+            raise ValueError("Last maintenance can't be in the future")
+        if self.crew_size > 20 or self.crew_size < 0:
+            raise ValueError("Input should be less than or equal to 20")
+        if self.power_level > 100 or self.power_level < 0:
+            raise ValueError("Power level should be in range of 0 and 100")
+        return self
 
 
 def main() -> None:
+    print("Space Station Data Validation")
+    print("#" * 50)
     valid = SpaceStation(
-            station_id="test",
-            name="finoana",
-            crew_size=5,
-            power_level=5.4,
-            oxygen_level=6.2,
-            last_maintenance="21-06-2024 12:20:20",
+            station_id="ISS001",
+            name="International Space Station",
+            crew_size=20,
+            power_level=85.5,
+            oxygen_level=92.3,
+            last_maintenance=datetime(2025, 6, 6, 12, 12, 5),
             is_operational=False,
             notes="test")
-    print(valid.crew_size)
+    operational = 'Operational' if valid.is_operational else 'Malfunction'
+    print("Valid sation created:")
+    print(f"ID: {valid.station_id}")
+    print(f"Name: {valid.name}")
+    print(f"Crew: {valid.crew_size} people")
+    print(f"Power: {valid.power_level}%")
+    print(f"Oxygen: {valid.oxygen_level}%")
+    print(f"Status: {operational}")
+    print("#" * 50)
 
 
 if __name__ == "__main__":
